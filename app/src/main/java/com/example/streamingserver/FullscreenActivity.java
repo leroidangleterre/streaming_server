@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -48,7 +49,6 @@ public class FullscreenActivity extends AppCompatActivity {
      */
     private static final int UI_ANIMATION_DELAY = 300;
     private final Handler mHideHandler = new Handler();
-    private View mContentView;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -58,7 +58,7 @@ public class FullscreenActivity extends AppCompatActivity {
             // Note that some of these constants are new as of API 16 (Jelly Bean)
             // and API 19 (KitKat). It is safe to use them, as they are inlined
             // at compile-time and do nothing on earlier devices.
-            mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
+            textView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -113,11 +113,11 @@ public class FullscreenActivity extends AppCompatActivity {
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
-        mContentView = findViewById(R.id.fullscreen_content);
+        textView = findViewById(R.id.fullscreen_content);
 
 
         // Set up the user interaction to manually hide the system UI.
-        mContentView.setOnClickListener(new View.OnClickListener() {
+        textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 hide();
@@ -130,70 +130,51 @@ public class FullscreenActivity extends AppCompatActivity {
 
         Log.d(TAG, "onCreate: ip: " + ipString);
 
-        textView = findViewById(R.id.fullscreen_content);
         textView.setText("ip: " + ipString);
 
         startTimerThread();
-
-
-//        // Create the UDP server that will receive information.
-//        Thread t = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d(TAG, "run: starting method");
-//                try {
-//                    Log.d(TAG, "run: before DatagramSocket");
-//                    DatagramSocket server = new DatagramSocket(port);
-//                    Log.d(TAG, "run: after DatagramSocket");
-//
-//                    while (true) {
-//                        // Receive a packet
-//                        byte[] buffer = new byte[8192];
-//                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-//                        Log.d(TAG, "run: before receiving the packet");
-//                        server.receive(packet);
-//                        Log.d(TAG, "run: after the packet was received");
-//
-//                        // Display the received information
-//                        String receivedText = new String(packet.getData());
-//                        receiveInfo(receivedText);
-//
-//                    }
-//                } catch (Exception e) {
-//                    Log.d(TAG, "run: exception " + e);
-//                }
-//            }
-//        });
-//        t.start();
     }
 
-
+    // Create the UDP server that will receive information.
     private void startTimerThread() {
 
         Thread th = new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "run: Thread has started.");
 
+                try {
+                    DatagramSocket server = new DatagramSocket(port);
+                    InetAddress computerAddress = null; //InetAddress.getByName("192.168.56.1");
 
-                for (int i = 0; i < 100; i++) {
-                    final String text = "coucou " + i + " !";
-                    Log.d(TAG, "run: " + text);
+                    int count = 0;
 
+                    while (true) {
+                        // Receive a packet
+                        byte[] buffer = new byte[8192];
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                        server.receive(packet);
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            textView.setText(text);
-                        }
-                    });
+                        // Display the received information
+//                        String receivedText = new String(packet.getData()); // OK
+                        String receivedText = new String(packet.getData()) + packet.getAddress().toString();
+//                        receivedText = receivedText + packet.getAddress().toString();
+                        receiveInfo(receivedText);
 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        Log.d(TAG, "run: Thread sleep error");
+                        // Inertial Measurement Unit: information about
+                        // accelerometer and gyroscope is sent to the server;
+//                        String imuText = "gyro and acc " + count;
+//                        buffer = imuText.getBytes();
+//                        computerAddress = packet.getAddress();
+//                        packet = new DatagramPacket(buffer, buffer.length, computerAddress, port);
+//                        packet.setData(buffer);
+//                        Log.d(TAG, "run: sending info to the server");
+//                        server.send(packet);
+//                        count++;
                     }
+                } catch (Exception e) {
+                    Log.d(TAG, "run: exception " + e);
                 }
+
             }
         });
         th.start();
@@ -234,7 +215,7 @@ public class FullscreenActivity extends AppCompatActivity {
     @SuppressLint("InlinedApi")
     private void show() {
         // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        textView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         mVisible = true;
 

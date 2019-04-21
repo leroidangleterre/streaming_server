@@ -42,63 +42,49 @@ public class Streaming_server_computer {
         timer.schedule(new TimerTask() {
             int count = 0;
 
-            String textToSend = "coucou " + count + " !";
-            byte[] buffer = textToSend.getBytes();
-
             @Override
             public void run() {
 
                 try {
-                    System.out.println("timer " + count);
-                    count++;
+                    boolean loop = true;
+                    while (loop) {
+                        count++;
 
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
+                        // Send information to the phone
+                        String textToSend = "coucou from server " + count + " !";
+                        byte[] buffer = textToSend.getBytes();
 
-                    packet.setData(buffer);
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
 
-                    // Send the packet
-                    client.send(packet);
-                    System.out.println("package sent");
+                        packet.setData(buffer);
+
+                        // Send the packet
+                        System.out.println("sending " + textToSend + " to the phone");
+                        client.send(packet);
+
+//                        // Receive information from the phone
+//                        buffer = new byte[8192];
+//                        System.out.println("receiving from phone...");
+//                        client.receive(packet);
+//
+//                        // Display info received from the phone
+//                        String receivedText = new String(packet.getData());
+//                        System.out.println("received <" + receivedText + "> from the phone");
+//                        if (receivedText.contains("100")) {
+//                            loop = false;
+//                        }
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(Streaming_server_computer.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
                 } catch (IOException e) {
                     System.out.println("error");
                 }
             }
         }, delay, period);
 
-//        Thread t = new Thread(new Runnable() {
-//            int count = 0;
-//
-//            @Override
-//            public void run() {
-//                while (true) {
-//                    String textToSend = "coucou " + count + " !";
-//                    byte[] buffer = textToSend.getBytes();
-//
-//                    try {
-//
-//                        System.out.println("Thread running ");
-//
-//                        DatagramSocket client = new DatagramSocket();
-//                        InetAddress address = InetAddress.getByName("503425216");
-//
-//                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
-//
-//                        packet.setData(buffer);
-//
-//                        // Send the packet
-//                        client.send(packet);
-//
-//                    } catch (SocketException | UnknownHostException ex) {
-//                        Logger.getLogger(Streaming_server_computer.class.getName()).log(Level.SEVERE, null, ex);
-//                    } catch (IOException ex) {
-//                        Logger.getLogger(Streaming_server_computer.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//
-//                    count++;
-//                }
-//            }
-//        });
-//        t.start();
     }
 
 }
