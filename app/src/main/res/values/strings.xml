@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">StreamingServer</string>
+
+    <string name="dummy_button">Dummy Button</string>
+    <string name="displayed_text">my_text_displayed</string>
+</resources>
