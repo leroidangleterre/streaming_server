@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  *
  * @author arthurmanoha
  */
-public class Streaming_server_computer {
+public class StreamingServerComputer {
 
     long sleepTime = 1000;
 
@@ -33,10 +33,10 @@ public class Streaming_server_computer {
         int port = 2345;
 
         int delay = 0;
-        int period = 1000;
+        int period = 10;
 
         DatagramSocket client = new DatagramSocket();
-        InetAddress address = InetAddress.getByName("192.168.1.30");
+        InetAddress phoneAddress = InetAddress.getByName("192.168.1.30");
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -48,36 +48,38 @@ public class Streaming_server_computer {
                 try {
                     boolean loop = true;
                     while (loop) {
-                        count++;
 
                         // Send information to the phone
-                        String textToSend = "coucou from server " + count + " !";
+                        System.out.println("Sending to phone.");
+                        String textToSend = "sending to phone: " + count + " !";
                         byte[] buffer = textToSend.getBytes();
 
-                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, phoneAddress, port);
 
                         packet.setData(buffer);
 
                         // Send the packet
-                        System.out.println("sending " + textToSend + " to the phone");
+//                        System.out.println("sending " + textToSend + " from the server");
                         client.send(packet);
 
 //                        // Receive information from the phone
-//                        buffer = new byte[8192];
-//                        System.out.println("receiving from phone...");
-//                        client.receive(packet);
+                        buffer = new byte[8192];
+                        System.out.println("receiving from phone...");
+                        client.receive(packet);
 //
 //                        // Display info received from the phone
-//                        String receivedText = new String(packet.getData());
-//                        System.out.println("received <" + receivedText + "> from the phone");
+                        String receivedText = new String(packet.getData());
+                        receivedText = receivedText.substring(0, packet.getLength());
+                        System.out.println("received <" + receivedText + "> from the phone");
 //                        if (receivedText.contains("100")) {
 //                            loop = false;
 //                        }
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(period);
                         } catch (InterruptedException ex) {
-                            Logger.getLogger(Streaming_server_computer.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(StreamingServerComputer.class.getName()).log(Level.SEVERE, null, ex);
                         }
+                        count++;
                     }
                 } catch (IOException e) {
                     System.out.println("error");

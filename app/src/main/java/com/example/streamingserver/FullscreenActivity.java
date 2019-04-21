@@ -16,6 +16,7 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Timer;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -144,7 +145,9 @@ public class FullscreenActivity extends AppCompatActivity {
 
                 try {
                     DatagramSocket server = new DatagramSocket(port);
-                    InetAddress computerAddress = null; //InetAddress.getByName("192.168.56.1");
+                    int emitterPort = -1;
+//                    InetAddress computerAddress = InetAddress.getByName("192.168.56.1");
+                    InetAddress computerAddress = InetAddress.getByName("192.168.1.88");
 
                     int count = 0;
 
@@ -153,23 +156,29 @@ public class FullscreenActivity extends AppCompatActivity {
                         byte[] buffer = new byte[8192];
                         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                         server.receive(packet);
+                        emitterPort = packet.getPort();
 
                         // Display the received information
-//                        String receivedText = new String(packet.getData()); // OK
-                        String receivedText = new String(packet.getData()) + packet.getAddress().toString();
-//                        receivedText = receivedText + packet.getAddress().toString();
-                        receiveInfo(receivedText);
+                        String receivedText = new String(packet.getData()); // OK
+                        receivedText = receivedText.substring(0, packet.getLength());
 
+                        receiveInfo(receivedText);
+                        Log.d(TAG, "run: received" + receivedText + " from computer.");
+
+                        Thread.sleep(1000);
+
+//                        Log.d(TAG, "run: " + receivedText);
                         // Inertial Measurement Unit: information about
                         // accelerometer and gyroscope is sent to the server;
-//                        String imuText = "gyro and acc " + count;
-//                        buffer = imuText.getBytes();
+                        String imuText = "gyro and acc " + count;
+                        buffer = imuText.getBytes();
 //                        computerAddress = packet.getAddress();
-//                        packet = new DatagramPacket(buffer, buffer.length, computerAddress, port);
-//                        packet.setData(buffer);
-//                        Log.d(TAG, "run: sending info to the server");
-//                        server.send(packet);
-//                        count++;
+                        Log.d(TAG, "run: sending to computer at "+computerAddress);
+                        packet = new DatagramPacket(buffer, buffer.length, computerAddress, emitterPort);
+                        packet.setData(buffer);
+                        Log.d(TAG, "run: sending " + imuText + " to the server");
+                        server.send(packet);
+                        count++;
                     }
                 } catch (Exception e) {
                     Log.d(TAG, "run: exception " + e);
