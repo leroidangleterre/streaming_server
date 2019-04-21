@@ -1,18 +1,36 @@
 package com.example.streamingserver;
 
 import android.annotation.SuppressLint;
+import android.net.wifi.WifiManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.format.Formatter;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
 public class FullscreenActivity extends AppCompatActivity {
+
+
+    // The port that will receive information from the server
+    int port = 2345;
+
+    String TAG = "coucou";
+
+    TextView textView;
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -31,7 +49,6 @@ public class FullscreenActivity extends AppCompatActivity {
      */
     private static final int UI_ANIMATION_DELAY = 300;
     private final Handler mHideHandler = new Handler();
-    private View mContentView;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -41,7 +58,7 @@ public class FullscreenActivity extends AppCompatActivity {
             // Note that some of these constants are new as of API 16 (Jelly Bean)
             // and API 19 (KitKat). It is safe to use them, as they are inlined
             // at compile-time and do nothing on earlier devices.
-            mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
+            textView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -83,6 +100,11 @@ public class FullscreenActivity extends AppCompatActivity {
         }
     };
 
+    protected void receiveInfo(String message) {
+        textView.setText(message);
+        Log.d(TAG, "receiveInfo: updating text");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,21 +113,71 @@ public class FullscreenActivity extends AppCompatActivity {
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
-        mContentView = findViewById(R.id.fullscreen_content);
+        textView = findViewById(R.id.fullscreen_content);
 
 
         // Set up the user interaction to manually hide the system UI.
-        mContentView.setOnClickListener(new View.OnClickListener() {
+        textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 hide();
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-//        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        int ip = wm.getConnectionInfo().getIpAddress();
+        String ipString = Formatter.formatIpAddress(ip);
+
+        Log.d(TAG, "onCreate: ip: " + ipString);
+
+        textView.setText("ip: " + ipString);
+
+        startTimerThread();
+    }
+
+    // Create the UDP server that will receive information.
+    private void startTimerThread() {
+
+        Thread th = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    DatagramSocket server = new DatagramSocket(port);
+                    InetAddress computerAddress = null; //InetAddress.getByName("192.168.56.1");
+
+                    int count = 0;
+
+                    while (true) {
+                        // Receive a packet
+                        byte[] buffer = new byte[8192];
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                        server.receive(packet);
+
+                        // Display the received information
+//                        String receivedText = new String(packet.getData()); // OK
+                        String receivedText = new String(packet.getData()) + packet.getAddress().toString();
+//                        receivedText = receivedText + packet.getAddress().toString();
+                        receiveInfo(receivedText);
+
+                        // Inertial Measurement Unit: information about
+                        // accelerometer and gyroscope is sent to the server;
+//                        String imuText = "gyro and acc " + count;
+//                        buffer = imuText.getBytes();
+//                        computerAddress = packet.getAddress();
+//                        packet = new DatagramPacket(buffer, buffer.length, computerAddress, port);
+//                        packet.setData(buffer);
+//                        Log.d(TAG, "run: sending info to the server");
+//                        server.send(packet);
+//                        count++;
+                    }
+                } catch (Exception e) {
+                    Log.d(TAG, "run: exception " + e);
+                }
+
+            }
+        });
+        th.start();
     }
 
     @Override
@@ -143,7 +215,7 @@ public class FullscreenActivity extends AppCompatActivity {
     @SuppressLint("InlinedApi")
     private void show() {
         // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        textView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         mVisible = true;
 

@@ -11,3 +11,5 @@
 /build
 /captures
 .externalNativeBuild
+/streaming_server_computer/nbproject/private/
+/streaming_server_computer/build/
