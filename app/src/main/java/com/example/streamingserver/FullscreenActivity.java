@@ -1,18 +1,35 @@
 package com.example.streamingserver;
 
 import android.annotation.SuppressLint;
+import android.net.wifi.WifiManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.format.Formatter;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
 public class FullscreenActivity extends AppCompatActivity {
+
+
+    // The port that will receive information from the server
+    int port = 2345;
+
+    String TAG = "coucou";
+
+    TextView textView;
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -83,6 +100,11 @@ public class FullscreenActivity extends AppCompatActivity {
         }
     };
 
+    protected void receiveInfo(String message) {
+        textView.setText(message);
+        Log.d(TAG, "receiveInfo: updating text");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,10 +124,79 @@ public class FullscreenActivity extends AppCompatActivity {
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-//        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        int ip = wm.getConnectionInfo().getIpAddress();
+        String ipString = Formatter.formatIpAddress(ip);
+
+        Log.d(TAG, "onCreate: ip: " + ipString);
+
+        textView = findViewById(R.id.fullscreen_content);
+        textView.setText("ip: " + ipString);
+
+        startTimerThread();
+
+
+//        // Create the UDP server that will receive information.
+//        Thread t = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                Log.d(TAG, "run: starting method");
+//                try {
+//                    Log.d(TAG, "run: before DatagramSocket");
+//                    DatagramSocket server = new DatagramSocket(port);
+//                    Log.d(TAG, "run: after DatagramSocket");
+//
+//                    while (true) {
+//                        // Receive a packet
+//                        byte[] buffer = new byte[8192];
+//                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+//                        Log.d(TAG, "run: before receiving the packet");
+//                        server.receive(packet);
+//                        Log.d(TAG, "run: after the packet was received");
+//
+//                        // Display the received information
+//                        String receivedText = new String(packet.getData());
+//                        receiveInfo(receivedText);
+//
+//                    }
+//                } catch (Exception e) {
+//                    Log.d(TAG, "run: exception " + e);
+//                }
+//            }
+//        });
+//        t.start();
+    }
+
+
+    private void startTimerThread() {
+
+        Thread th = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "run: Thread has started.");
+
+
+                for (int i = 0; i < 100; i++) {
+                    final String text = "coucou " + i + " !";
+                    Log.d(TAG, "run: " + text);
+
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textView.setText(text);
+                        }
+                    });
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, "run: Thread sleep error");
+                    }
+                }
+            }
+        });
+        th.start();
     }
 
     @Override
