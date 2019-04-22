@@ -8,8 +8,6 @@ package streaming_server_computer;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Timer;
@@ -23,8 +21,6 @@ import java.util.logging.Logger;
  */
 public class StreamingServerComputer {
 
-    long sleepTime = 1000;
-
     /**
      * @param args the command line arguments
      */
@@ -35,8 +31,7 @@ public class StreamingServerComputer {
         int delay = 0;
         int period = 10;
 
-        DatagramSocket client = new DatagramSocket();
-        InetAddress phoneAddress = InetAddress.getByName("192.168.1.30");
+        DatagramSocket client = new DatagramSocket(port);
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -48,42 +43,47 @@ public class StreamingServerComputer {
                 try {
                     boolean loop = true;
                     while (loop) {
+                        System.out.println("loop");
+
+                        // Receive information from the phone
+                        byte[] buffer = new byte[8192];
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                        System.out.println("waiting");
+                        client.receive(packet);
+
+                        // Display info received from the phone
+                        String receivedText = new String(packet.getData());
+                        receivedText = receivedText.substring(0, packet.getLength());
+//                        System.out.println("from phone: " + receivedText);
+                        System.out.println("From phone:");
+                        String[] matrixAndGravityElems = receivedText.split(" ");
+
+                        for (int i = 0; i < matrixAndGravityElems.length; i++) {
+                            if (4 * (i / 4) == i) {
+                                System.out.println("");
+                            }
+                            System.out.print(matrixAndGravityElems[i] + ", ");
+                        }
+                        System.out.println("");
+                        count++;
 
                         // Send information to the phone
-                        System.out.println("Sending to phone.");
-                        String textToSend = "sending to phone: " + count + " !";
-                        byte[] buffer = textToSend.getBytes();
+                        String textToSend = "from computer: " + count + " !";
+                        buffer = textToSend.getBytes();
 
-                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, phoneAddress, port);
+                        packet = new DatagramPacket(buffer, buffer.length,
+                                packet.getAddress(), packet.getPort());
 
                         packet.setData(buffer);
 
                         // Send the packet
-//                        System.out.println("sending " + textToSend + " from the server");
                         client.send(packet);
 
-//                        // Receive information from the phone
-                        buffer = new byte[8192];
-                        System.out.println("receiving from phone...");
-                        client.receive(packet);
-//
-//                        // Display info received from the phone
-                        String receivedText = new String(packet.getData());
-                        receivedText = receivedText.substring(0, packet.getLength());
-                        System.out.println("received <" + receivedText + "> from the phone");
-//                        if (receivedText.contains("100")) {
-//                            loop = false;
-//                        }
-                        try {
-                            Thread.sleep(period);
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(StreamingServerComputer.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        count++;
                     }
                 } catch (IOException e) {
                     System.out.println("error");
                 }
+                System.out.println("after loop.");
             }
         }, delay, period);
 
