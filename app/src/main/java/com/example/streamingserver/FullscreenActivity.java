@@ -29,9 +29,6 @@ import java.util.Timer;
 public class FullscreenActivity extends AppCompatActivity implements SensorEventListener {
 
 
-    // The port that will receive information from the server
-    int port = 2345;
-
     String TAG = "coucou";
 
     TextView textView;
@@ -199,11 +196,13 @@ public class FullscreenActivity extends AppCompatActivity implements SensorEvent
                         DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
                                 computerAddress, serverPort);
                         packet.setData(buffer);
+                        Log.d(TAG, "run: sending data to computer");
                         serverSocket.send(packet);
 
                         // Receive a packet
                         buffer = new byte[8192];
                         packet = new DatagramPacket(buffer, buffer.length);
+                        Log.d(TAG, "run: receiving data");
                         serverSocket.receive(packet);
 
                         // Display the received information
