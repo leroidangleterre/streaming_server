@@ -1,6 +1,10 @@
 package com.example.streamingserver;
 
 import android.annotation.SuppressLint;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.wifi.WifiManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -22,15 +26,18 @@ import java.util.Timer;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class FullscreenActivity extends AppCompatActivity {
+public class FullscreenActivity extends AppCompatActivity implements SensorEventListener {
 
-
-    // The port that will receive information from the server
-    int port = 2345;
 
     String TAG = "coucou";
 
     TextView textView;
+
+    SensorManager mSensorManager;
+    Sensor mRotationVectorSensor;
+    Sensor mLinearAccSensor;
+    float[] mRotationMatrix = new float[16];
+    float[] gravity = new float[3];
 
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -133,6 +140,22 @@ public class FullscreenActivity extends AppCompatActivity {
 
         textView.setText("ip: " + ipString);
 
+
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mRotationVectorSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        // enable our sensor when the activity is resumed, ask for
+        // 10 ms updates.
+        mSensorManager.registerListener(this, mRotationVectorSensor, 10000);
+
+        mLinearAccSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mSensorManager.registerListener(this, mLinearAccSensor, 10000);
+
+        // initialize the rotation matrix to identity
+        mRotationMatrix[0] = 1;
+        mRotationMatrix[4] = 1;
+        mRotationMatrix[8] = 1;
+        mRotationMatrix[12] = 1;
+
         startTimerThread();
     }
 
@@ -150,9 +173,19 @@ public class FullscreenActivity extends AppCompatActivity {
 
                     while (true) {
 
+                        Log.d(TAG, "run: count = " + count);
                         // Inertial Measurement Unit: information about
                         // accelerometer and gyroscope is sent to the server;
-                        String imuText = count + "gyro and acc ";
+                        // We send the 16 values of the rotation matrix, and the 3 values of the gravity vector.
+                        String imuText = "";
+                        for (int i = 0; i < 16; i++) {
+                            imuText += mRotationMatrix[i] + " ";
+                        }
+                        for (int i = 0; i < 3; i++) {
+                            imuText += gravity[i] + " ";
+                        }
+
+
                         byte[] buffer = imuText.getBytes();
 
 
@@ -163,11 +196,13 @@ public class FullscreenActivity extends AppCompatActivity {
                         DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
                                 computerAddress, serverPort);
                         packet.setData(buffer);
+                        Log.d(TAG, "run: sending data to computer");
                         serverSocket.send(packet);
 
                         // Receive a packet
                         buffer = new byte[8192];
                         packet = new DatagramPacket(buffer, buffer.length);
+                        Log.d(TAG, "run: receiving data");
                         serverSocket.receive(packet);
 
                         // Display the received information
@@ -176,13 +211,13 @@ public class FullscreenActivity extends AppCompatActivity {
 
                         receiveInfo(receivedText);
 
-                        Thread.sleep(1000);
+                        Thread.sleep(100);
                         count++;
                     }
                 } catch (Exception e) {
                     Log.d(TAG, "run: exception " + e);
                 }
-
+                Log.d(TAG, "run: after loop");
             }
         });
         th.start();
@@ -239,5 +274,28 @@ public class FullscreenActivity extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+//            Log.d(TAG, "run: onSensorChanged: rotation");
+            // convert the rotation-vector to a 4x4 matrix. the matrix
+            // is interpreted by Open GL as the inverse of the
+            // rotation-vector, which is what we want.
+            SensorManager.getRotationMatrixFromVector(
+                    mRotationMatrix, event.values);
+        }
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+//            Log.d(TAG, "run: onSensorChanged: accelero");
+            gravity[0] = event.values[0];
+            gravity[1] = event.values[1];
+            gravity[2] = event.values[2];
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }
