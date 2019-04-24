@@ -67,6 +67,16 @@ public class StreamingServerComputer {
                         System.out.println("");
                         count++;
 
+                        // Receive information from the phone
+                        byte[] buffer = new byte[8192];
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                        client.receive(packet);
+
+                        // Display info received from the phone
+                        String receivedText = new String(packet.getData());
+                        receivedText = receivedText.substring(0, packet.getLength());
+                        count++;
+
                         // Send information to the phone
                         String textToSend = "from computer: " + count + " !";
                         buffer = textToSend.getBytes();

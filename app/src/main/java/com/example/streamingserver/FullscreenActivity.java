@@ -175,6 +175,7 @@ public class FullscreenActivity extends AppCompatActivity implements SensorEvent
                     int serverPort = 2345;
 
                     while (true) {
+
                         Log.d(TAG, "run: count = " + count);
                         // Inertial Measurement Unit: information about
                         // accelerometer and gyroscope is sent to the server;
@@ -203,7 +204,6 @@ public class FullscreenActivity extends AppCompatActivity implements SensorEvent
                         // Receive a packet
                         buffer = new byte[8192];
                         packet = new DatagramPacket(buffer, buffer.length);
-                        Log.d(TAG, "run: waiting");
                         serverSocket.receive(packet);
 
                         // Display the received information
