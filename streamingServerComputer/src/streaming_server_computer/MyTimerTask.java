@@ -5,9 +5,6 @@
  */
 package streaming_server_computer;
 
-import com.jogamp.opengl.GLCapabilities;
-import com.jogamp.opengl.GLProfile;
-import com.jogamp.opengl.awt.GLCanvas;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -15,8 +12,6 @@ import java.net.SocketException;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 /**
  *
@@ -35,12 +30,21 @@ public class MyTimerTask extends TimerTask {
     float[] mRotationMatrix = new float[16];
     float[] acceleration = new float[3];
 
+    private BasicFrame basicFrame;
+
     public MyTimerTask() {
         try {
             client = new DatagramSocket(port);
         } catch (SocketException ex) {
+            System.out.println("SocketException");
             Logger.getLogger(MyTimerTask.class.getName()).log(Level.SEVERE, null, ex);
         }
+        basicFrame = null;
+    }
+
+    public MyTimerTask(BasicFrame b) {
+        this();
+        basicFrame = b;
     }
 
     public void setMatrices(float[] mRot, float[] mAcc) {
@@ -52,14 +56,11 @@ public class MyTimerTask extends TimerTask {
     public void run() {
 
         try {
-            System.out.println("loop");
 
             // Receive information from the phone
             byte[] buffer = new byte[8192];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            System.out.println("waiting");
             client.receive(packet);
-            System.out.println("received packet.");
 
             // Display info received from the phone
             String receivedText = new String(packet.getData());
@@ -68,18 +69,12 @@ public class MyTimerTask extends TimerTask {
 
             count++;
 
-            System.out.println("rotation: ");
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    mRotationMatrix[i] = new Float(matrixAndGravityElems[4 * i + j]);
-                    System.out.print(" - " + mRotationMatrix[i]);
-                }
-                System.out.println("");
+            for (int i = 0; i < 16; i++) {
+                mRotationMatrix[i] = new Float(matrixAndGravityElems[i]);
             }
-            System.out.println("acceleration: ");
+            basicFrame.updateRotation(mRotationMatrix);
             for (int i = 0; i < 3; i++) {
                 acceleration[i] = new Float(matrixAndGravityElems[i + 16]);
-                System.out.print(" - " + acceleration[i]);
             }
 
             // Generate an image and display it in a JFrame
@@ -95,10 +90,8 @@ public class MyTimerTask extends TimerTask {
             // Send the packet
             client.send(packet);
 
-//            }
         } catch (IOException e) {
-            System.out.println("error: " + e);
+            System.out.println("error in TimerTask: " + e);
         }
-        System.out.println("after loop.");
     }
 }
