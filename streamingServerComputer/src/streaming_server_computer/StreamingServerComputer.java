@@ -57,13 +57,13 @@ public class StreamingServerComputer {
         frame.setVisible(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        Timer timer = new Timer();
+        Timer emissionTimer = new Timer();
 
-        MyTimerTask task = new MyTimerTask(b);
+        MyEmissionTimerTask emissionTask = new MyEmissionTimerTask(b);
 
-        task.setMatrices(mRotationMatrix, acceleration);
+        emissionTask.setMatrices(mRotationMatrix, acceleration);
 
-        timer.schedule(task, delay, period);
+        emissionTimer.schedule(emissionTask, delay, period);
 
         final FPSAnimator animator = new FPSAnimator(glcanvas, 300, true);
 

@@ -21,7 +21,6 @@ public class BasicFrame implements GLEventListener, KeyListener {
     private GLU glu;
     private float[] rotation;
     private float[] acceleration;
-    private float rtri = 0.0f;
 
     public BasicFrame() {
         glu = new GLU();
@@ -63,10 +62,16 @@ public class BasicFrame implements GLEventListener, KeyListener {
         // Clear The Screen And The Depth Buffer
         gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
         gl.glLoadIdentity();  // Reset The View
-        gl.glTranslatef(-0.5f, 0.0f, -6.0f);  // Move the triangle 
+        gl.glTranslatef(-0.5f, 0.0f, -6.0f);  // Move the triangle
 
-        rtri = rotation[0];
-        gl.glRotatef(rtri * 100, 0.0f, 1.0f, 0.0f);
+        float[] center = {rotation[0], rotation[1], rotation[2]};
+        float[] eye = {rotation[4], rotation[5], rotation[6]};
+        float[] up = {rotation[8], rotation[9], rotation[10]};
+
+        glu.gluLookAt(
+                eye[0], eye[1], eye[2],
+                center[0], center[1], center[2],
+                up[0], up[1], up[2]);
 
         gl.glBegin(GL2.GL_TRIANGLES);
 
@@ -92,7 +97,7 @@ public class BasicFrame implements GLEventListener, KeyListener {
         gl.glColor3f(0.0f, 0.0f, 1.0f);
         gl.glVertex3f(-1.0f, -1.0f, -1.0f); // Right 
         //top
-        gl.glColor3f(0.0f, 1.0f, 0.0f);
+        gl.glColor3f(1.0f, 0.0f, 0.0f);
         gl.glVertex3f(1.0f, 2.0f, 0.0f); // Top 
         gl.glColor3f(0.0f, 0.0f, 1.0f);
         gl.glVertex3f(-1.0f, -1.0f, -1.0f); // Left 
@@ -133,6 +138,8 @@ public class BasicFrame implements GLEventListener, KeyListener {
     /**
      * Receive phone information from the TimerTask.
      *
+     * @param rotationParam the received information about the orientation of
+     * the client.
      */
     public void updateRotation(float[] rotationParam) {
         for (int i = 0; i < rotationParam.length; i++) {

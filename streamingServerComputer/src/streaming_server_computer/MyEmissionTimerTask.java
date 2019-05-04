@@ -14,35 +14,42 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * This task sends sensor data to the server.
  *
  * @author arthurmanoha
  *
  * This task
  */
-public class MyTimerTask extends TimerTask {
+public class MyEmissionTimerTask extends TimerTask {
 
     int count = 0;
 
-    DatagramSocket client;
-    int port = 2345;
+    DatagramSocket serverSocket;
+    int clientPort = 2222;
+    int serverPort = 2555;
+
+    int timeout = 300; // milliseconds
 
     // The values that represent the movements of the phone
     float[] mRotationMatrix = new float[16];
     float[] acceleration = new float[3];
 
+    byte[] buffer;
+
     private BasicFrame basicFrame;
 
-    public MyTimerTask() {
+    public MyEmissionTimerTask() {
         try {
-            client = new DatagramSocket(port);
+            serverSocket = new DatagramSocket(serverPort);
         } catch (SocketException ex) {
             System.out.println("SocketException");
-            Logger.getLogger(MyTimerTask.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MyEmissionTimerTask.class.getName()).log(Level.SEVERE, null, ex);
         }
         basicFrame = null;
+        buffer = new byte[8192];
     }
 
-    public MyTimerTask(BasicFrame b) {
+    public MyEmissionTimerTask(BasicFrame b) {
         this();
         basicFrame = b;
     }
@@ -56,13 +63,13 @@ public class MyTimerTask extends TimerTask {
     public void run() {
 
         try {
-
             // Receive information from the phone
-            byte[] buffer = new byte[8192];
+            buffer = new byte[8192];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            client.receive(packet);
 
-            // Display info received from the phone
+            serverSocket.setSoTimeout(timeout);
+            serverSocket.receive(packet);
+
             String receivedText = new String(packet.getData());
             receivedText = receivedText.substring(0, packet.getLength());
             String[] matrixAndGravityElems = receivedText.split(" ");
@@ -77,18 +84,11 @@ public class MyTimerTask extends TimerTask {
                 acceleration[i] = new Float(matrixAndGravityElems[i + 16]);
             }
 
-            // Generate an image and display it in a JFrame
             // Send information to the phone
             String textToSend = "from computer: " + count + " !";
             buffer = textToSend.getBytes();
-
-            packet = new DatagramPacket(buffer, buffer.length,
-                    packet.getAddress(), packet.getPort());
-
-            packet.setData(buffer);
-
-            // Send the packet
-            client.send(packet);
+            serverSocket.send(new DatagramPacket(buffer, textToSend.length(),
+                    packet.getAddress(), clientPort));
 
         } catch (IOException e) {
             System.out.println("error in TimerTask: " + e);
