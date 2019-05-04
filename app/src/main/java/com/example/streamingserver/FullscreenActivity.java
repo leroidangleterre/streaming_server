@@ -20,6 +20,7 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.util.Timer;
 
 /**
@@ -166,58 +167,55 @@ public class FullscreenActivity extends AppCompatActivity implements SensorEvent
             @Override
             public void run() {
 
+                int timeout = 100; // milliseconds
+
                 try {
 
                     int count = 0;
-                    int serverPort = 2345;
+                    int serverPort = 2555; // Client reception (from server)
+                    int clientPort = 2222; // Emission from client to server
+                    DatagramSocket clientSocket = new DatagramSocket(clientPort);
+                    DatagramPacket datagramPacket;
+                    InetAddress computerAddress = InetAddress.getByName("192.168.1.88");
+                    byte[] buffer;// = new byte[8192];
 
                     while (true) {
 
-                        Log.d(TAG, "run: count = " + count);
-                        // Inertial Measurement Unit: information about
-                        // accelerometer and gyroscope is sent to the server;
-                        // We send the 16 values of the rotation matrix, and the 3 values of the gravity vector.
-                        String imuText = "";
-                        for (int i = 0; i < 16; i++) {
-                            imuText += mRotationMatrix[i] + " ";
+                        try {
+//                            Log.d(TAG, "run: count = " + count);
+                            // Inertial Measurement Unit: information about
+                            // accelerometer and gyroscope is sent to the server;
+                            // We send the 16 values of the rotation matrix, and the 3 values of the gravity vector.
+                            String imuText = "";
+                            for (int i = 0; i < 16; i++) {
+                                imuText += mRotationMatrix[i] + " ";
+                            }
+                            for (int i = 0; i < 3; i++) {
+                                imuText += gravity[i] + " ";
+                            }
+
+                            buffer = imuText.getBytes();
+                            clientSocket.send(new DatagramPacket(buffer, imuText.length(),
+                                    computerAddress, serverPort));
+
+                            datagramPacket = new DatagramPacket(buffer, buffer.length);
+                            clientSocket.setSoTimeout(timeout);
+                            clientSocket.receive(datagramPacket);
+
+                            String receivedText = new String(datagramPacket.getData());
+                            receivedText = receivedText.substring(0, datagramPacket.getLength());
+
+                            receiveInfo(receivedText);
+
+                            Thread.sleep(100);
+                            count++;
+                        } catch (SocketTimeoutException e) {
+                            Log.d(TAG, "run: SocketTimeoutException detected.");
                         }
-                        for (int i = 0; i < 3; i++) {
-                            imuText += gravity[i] + " ";
-                        }
-
-
-                        byte[] buffer = imuText.getBytes();
-
-
-                        // Send info to the computer
-                        DatagramSocket serverSocket = new DatagramSocket();
-                        InetAddress computerAddress = InetAddress.getByName("192.168.1.88");
-
-                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
-                                computerAddress, serverPort);
-                        packet.setData(buffer);
-                        Log.d(TAG, "run: sending data to computer");
-                        serverSocket.send(packet);
-
-                        // Receive a packet
-                        buffer = new byte[8192];
-                        packet = new DatagramPacket(buffer, buffer.length);
-                        Log.d(TAG, "run: receiving data");
-                        serverSocket.receive(packet);
-
-                        // Display the received information
-                        String receivedText = new String(packet.getData());
-                        receivedText = receivedText.substring(0, packet.getLength());
-
-                        receiveInfo(receivedText);
-
-                        Thread.sleep(100);
-                        count++;
                     }
                 } catch (Exception e) {
                     Log.d(TAG, "run: exception " + e);
                 }
-                Log.d(TAG, "run: after loop");
             }
         });
         th.start();

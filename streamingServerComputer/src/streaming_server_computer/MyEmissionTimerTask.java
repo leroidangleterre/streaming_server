@@ -5,9 +5,6 @@
  */
 package streaming_server_computer;
 
-import com.jogamp.opengl.GLCapabilities;
-import com.jogamp.opengl.GLProfile;
-import com.jogamp.opengl.awt.GLCanvas;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -15,32 +12,46 @@ import java.net.SocketException;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 /**
+ * This task sends sensor data to the server.
  *
  * @author arthurmanoha
  *
  * This task
  */
-public class MyTimerTask extends TimerTask {
+public class MyEmissionTimerTask extends TimerTask {
 
     int count = 0;
 
-    DatagramSocket client;
-    int port = 2345;
+    DatagramSocket serverSocket;
+    int clientPort = 2222;
+    int serverPort = 2555;
+
+    int timeout = 300; // milliseconds
 
     // The values that represent the movements of the phone
     float[] mRotationMatrix = new float[16];
     float[] acceleration = new float[3];
 
-    public MyTimerTask() {
+    byte[] buffer;
+
+    private BasicFrame basicFrame;
+
+    public MyEmissionTimerTask() {
         try {
-            client = new DatagramSocket(port);
+            serverSocket = new DatagramSocket(serverPort);
         } catch (SocketException ex) {
-            Logger.getLogger(MyTimerTask.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("SocketException");
+            Logger.getLogger(MyEmissionTimerTask.class.getName()).log(Level.SEVERE, null, ex);
         }
+        basicFrame = null;
+        buffer = new byte[8192];
+    }
+
+    public MyEmissionTimerTask(BasicFrame b) {
+        this();
+        basicFrame = b;
     }
 
     public void setMatrices(float[] mRot, float[] mAcc) {
@@ -52,53 +63,35 @@ public class MyTimerTask extends TimerTask {
     public void run() {
 
         try {
-            System.out.println("loop");
-
             // Receive information from the phone
-            byte[] buffer = new byte[8192];
+            buffer = new byte[8192];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            System.out.println("waiting");
-            client.receive(packet);
-            System.out.println("received packet.");
 
-            // Display info received from the phone
+            serverSocket.setSoTimeout(timeout);
+            serverSocket.receive(packet);
+
             String receivedText = new String(packet.getData());
             receivedText = receivedText.substring(0, packet.getLength());
             String[] matrixAndGravityElems = receivedText.split(" ");
 
             count++;
 
-            System.out.println("rotation: ");
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    mRotationMatrix[i] = new Float(matrixAndGravityElems[4 * i + j]);
-                    System.out.print(" - " + mRotationMatrix[i]);
-                }
-                System.out.println("");
+            for (int i = 0; i < 16; i++) {
+                mRotationMatrix[i] = new Float(matrixAndGravityElems[i]);
             }
-            System.out.println("acceleration: ");
+            basicFrame.updateRotation(mRotationMatrix);
             for (int i = 0; i < 3; i++) {
                 acceleration[i] = new Float(matrixAndGravityElems[i + 16]);
-                System.out.print(" - " + acceleration[i]);
             }
 
-            // Generate an image and display it in a JFrame
             // Send information to the phone
             String textToSend = "from computer: " + count + " !";
             buffer = textToSend.getBytes();
+            serverSocket.send(new DatagramPacket(buffer, textToSend.length(),
+                    packet.getAddress(), clientPort));
 
-            packet = new DatagramPacket(buffer, buffer.length,
-                    packet.getAddress(), packet.getPort());
-
-            packet.setData(buffer);
-
-            // Send the packet
-            client.send(packet);
-
-//            }
         } catch (IOException e) {
-            System.out.println("error: " + e);
+            System.out.println("error in TimerTask: " + e);
         }
-        System.out.println("after loop.");
     }
 }
